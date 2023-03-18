@@ -4,119 +4,73 @@ namespace WeatherApi.Models
     {
         public Weather GetWeather(string city)
         {
-            int temp = new_temp_hum("temp");
-            int hum = new_temp_hum("hum");
-
-            Weather nullweather = new Weather() ;
-
             Weather targetLocation = new Weather 
-            { 
+            {
                 Location = city,
                 localtime = DateTime.Now,
-                TemperatureC = temp, 
-                Humidity = hum,
-                SkyView = sky_aparence(temp),
-                per_hour = Weather_Overtime(temp, hum, false),
-                per_week = Weather_Overtime(temp, hum, true)
+                TemperatureC = throw_dice(-10, 40), 
+                Humidity = throw_dice(50, 100)
             };
+            targetLocation.SkyView = sky_aparence(targetLocation.TemperatureC);
+            Create_weather_overtime(targetLocation);
 
             return targetLocation;
         }
-
-        public int new_temp_hum(string type)
-        {
-            Random num = new Random();
-            switch(type)
-            {
-                case "temp":
-                return num.Next(-10, 40);
-
-                case "hum":
-                return num.Next(50, 100);
-
-                default:
-                throw new ArgumentException();
-            }
-        }
-        public int RandomNum(int based, string type)
-        {
-            Random num = new Random();
-
-            switch(type)
-            {
-                case "temp":
-                return num.Next(based - 2, based + 2);
-
-                case "hum":
-                int hum = num.Next(based - 10, based + 10);
-                if( hum < 0 )
-                {
-                    return hum + 5;
-                }
-                return hum;
-
-                case "sky":
-                return num.Next (0, 5);
-
-                default:
-                throw new ArgumentException();
-            }
-        }
-        public List<Overtime> Weather_Overtime(int temperature, int Humidity, bool Is_daily)
-        {
-            List<Overtime> lies_per_hour = new List<Overtime>();
-            int How_many = 5;
-
-            if(Is_daily)
-            {
-                How_many = 7;
-            }
+        public void Create_weather_overtime(Weather actual_weather){
             
-            for (int i = 1; i < How_many; i++)
+            List<Overtime> hourly_weather = new List<Overtime>();
+            List<Overtime> week_weather = new List<Overtime>();
+
+            for (int i = 1; i < 8; i++)
             {
-                Overtime hourly = new Overtime()
-                {
-                    date = date(Is_daily, i),
-                    TemperatureC= RandomNum(temperature, "temp"), 
-                    Humidity= RandomNum(Humidity, "temp"), 
-                    SkyView = sky_aparence(temperature)
-                };
-                lies_per_hour.Add(hourly);
+                Overtime hourly = ovetimes(actual_weather, i);
+                Overtime daily = ovetimes(actual_weather, i * 24);
+                hourly_weather.Add(hourly);
+                week_weather.Add(daily);
             }
-            return lies_per_hour;
+            actual_weather.per_hour = hourly_weather;
+            actual_weather.per_week = week_weather;
+
+        }
+        public Overtime ovetimes (Weather actual_weather, int interval){
+
+            int temp = actual_weather.TemperatureC;
+            int hum = actual_weather.Humidity;
+
+            Overtime timed = new Overtime(){
+                date = DateTime.Now.AddHours(interval),
+                TemperatureC = throw_dice(temp -2,temp + 2),
+                Humidity = throw_dice(hum - 10, hum + 10)
+            };
+            timed.SkyView = sky_aparence(timed.TemperatureC);
+            System.Console.WriteLine(timed.date);
+
+            while (timed.Humidity < 0 || timed.Humidity > 100) { timed.Humidity += throw_dice(hum -5, hum +5); };
+            
+            return timed;
         }
         public string sky_aparence(int temperature)
         {
             List<string> HighTemp = new List<string>(){"Sunny", "Partly Cloudy", "Sunny", "Sunny", "Partly Cloudy"};
             List<string> MildTemp = new List<string>(){"Cloudy", "Partly Cloudy", "Windy", "Sunny", "Rainy"};
             List<string> LowTemp = new List<string>(){"Cloudy", "Partly Cloudy", "Windy", "Foggy", "Snowy"};
-
-            // Cloudy, Partly Cloudy, Windy, Sunny, Rainy, Foggy, Snowy
-
+            
             switch(temperature)
             {
                 case > 23:
-                return HighTemp[RandomNum(temperature,  "sky")];
+                return HighTemp[throw_dice(0 , HighTemp.Count())];
 
                 case <= 0:
-                return LowTemp[RandomNum(temperature, "sky")];
+                return LowTemp[throw_dice(0 , LowTemp.Count())];
 
                 default:
-                return MildTemp[RandomNum(temperature, "sky")];
+                return MildTemp[throw_dice(0 , MildTemp.Count())];
             }
 
         }
-        public DateTime date(bool Is_daily, int i)
-        {
-            DateTime date = DateTime.Now;
-            switch(Is_daily)
-            {
-                case true:
-                    return date.AddDays(i);
-
-                default:
-                    return date.AddHours(i);
-            }
+        public int throw_dice(int min, int max){
+            Random num = new Random();
+            return num.Next(min, max);
         }
 
     }
