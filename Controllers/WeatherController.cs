@@ -17,8 +17,7 @@ namespace WeatherApi.Controllers
         [Route("weather")]
         public Models.Weather GetWeather(string city)
         {
-            var weather =  repository.GetWeather(city);
-            return weather;
+            return repository.GetWeather(city);
         }
     }
     
